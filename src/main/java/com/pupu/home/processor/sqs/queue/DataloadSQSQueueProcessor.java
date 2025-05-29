@@ -8,14 +8,20 @@ import com.amazonaws.services.lambda.runtime.logging.LogLevel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pupu.home.aws.client.factory.AWSClientFactory;
 import com.pupu.home.dto.Member;
-import com.pupu.home.processor.LambdaProcessor;
-import com.pupu.home.utils.AWSClientType;
 import com.pupu.home.utils.DataloadConstants;
 
-import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
-public class DataloadSQSQueueProcessor implements LambdaProcessor {
+public class DataloadSQSQueueProcessor {
+	
+	private static DataloadSQSQueueProcessor instance;
+	private DataloadSQSQueueProcessor() {}
+	public static DataloadSQSQueueProcessor getInstance() {
+		if (instance == null) {
+			instance = new DataloadSQSQueueProcessor();
+		}
+		return instance;
+	}
 	
 	public void processMemberRecordsInChunk(List<Member> memberList, LambdaLogger logger) {
 		logger.log("DataloadSQSQueueBatchSubmitter.processMemberRecordsInChunk:: START", LogLevel.INFO);
@@ -54,7 +60,7 @@ public class DataloadSQSQueueProcessor implements LambdaProcessor {
 				.messageDeduplicationId(UUID.randomUUID().toString())
 				.build();
 		
-		getSQSClient().sendMessage(messageRequest);
+		AWSClientFactory.getInstance().getSqsClient().sendMessage(messageRequest);
 		logger.log("DataloadSQSQueueBatchSubmitter.submitQueueToSQS:: submitted Queue to SQS for chuck=" + chuckCounter, LogLevel.INFO);
 	}
 	
@@ -69,9 +75,4 @@ public class DataloadSQSQueueProcessor implements LambdaProcessor {
         return jsonString;
 	}
 	
-	private SqsClient getSQSClient() {
-		SqsClient sqsClient = (SqsClient)AWSClientFactory.getInstance().getClient(AWSClientType.SQSCLIENT.name());
-		return sqsClient;
-	}
-
 }
